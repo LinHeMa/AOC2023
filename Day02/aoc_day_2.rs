@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 
 struct CubeSet {
@@ -12,25 +11,21 @@ struct Game {
     sets: Vec<CubeSet>,
 }
 
-fn read_input_from_file(file_path: &str) -> String {
-    fs::read_to_string(file_path).expect("Failed to read file")
+impl CubeSet {
+    fn new() -> CubeSet {
+        CubeSet { red: 0, green: 0, blue: 0 }
+    }
 }
 
-fn parse_input(input: &str) -> Vec<Game> {
-    input
-        .lines()
-        .map(|line| {
+impl Game {
+    fn parse_input(input: &str) -> Vec<Game> {
+        input.lines().map(|line| {
             let parts: Vec<&str> = line.split(": ").collect();
             let id = parts[0].replace("Game ", "").parse::<usize>().unwrap();
-            let sets = parts[1]
-                .split("; ")
-                .map(|set| {
-                    let mut cubes = CubeSet {
-                        red: 0,
-                        green: 0,
-                        blue: 0,
-                    };
-                    for cube in set.split(", ") {
+            let sets = parts[1].split("; ")
+                .map(|set_str| {
+                    let mut cubes = CubeSet::new();
+                    for cube in set_str.split(", ") {
                         let parts: Vec<&str> = cube.split_whitespace().collect();
                         let count = parts[0].parse::<usize>().unwrap();
                         match parts[1] {
@@ -44,40 +39,53 @@ fn parse_input(input: &str) -> Vec<Game> {
                 })
                 .collect();
             Game { id, sets }
-        })
-        .collect()
-}
-
-fn is_game_possible(game: &Game, bag: &HashMap<&str, usize>) -> bool {
-    for set in &game.sets {
-        if set.red > *bag.get("red").unwrap()
-            || set.green > *bag.get("green").unwrap()
-            || set.blue > *bag.get("blue").unwrap()
-        {
-            return false;
-        }
+        }).collect()
     }
-    true
+
+    fn is_game_possible(&self, bag: &std::collections::HashMap<&str, usize>) -> bool {
+        self.sets.iter().all(|set| {
+            set.red <= *bag.get("red").unwrap() &&
+            set.green <= *bag.get("green").unwrap() &&
+            set.blue <= *bag.get("blue").unwrap()
+        })
+    }
+
+    fn find_minimum_cubes(&self) -> (usize, usize, usize) {
+        let min_red = self.sets.iter().map(|set| set.red).max().unwrap_or(0);
+        let min_green = self.sets.iter().map(|set| set.green).max().unwrap_or(0);
+        let min_blue = self.sets.iter().map(|set| set.blue).max().unwrap_or(0);
+        (min_red, min_green, min_blue)
+    }
 }
 
-
+fn calculate_power(red: usize, green: usize, blue: usize) -> usize {
+    red * green * blue
+}
 
 fn main() {
-    // example input
-    // let input = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\nGame 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\nGame 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\nGame 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\nGame 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
-    let file_path = "./day_02_input.txt";
-    let input_data = read_input_from_file(file_path);
-    let games = parse_input(&input_data);
-    let mut sum = 0;
+    let data = fs::read_to_string("./day_02_input.txt").expect("Unable to read file");
+    
+    let games = Game::parse_input(&data);
+    
+    let mut sum_ids = 0;
+    let mut total_power = 0;
 
-    let bag = HashMap::from([("red", 12), ("green", 13), ("blue", 14)]);
+    let bag = std::collections::HashMap::from([
+        ("red", 12),
+        ("green", 13),
+        ("blue", 14),
+    ]);
 
     for game in games {
-        print!("{}", game);
-        if is_game_possible(&game, &bag) {
-            sum += game.id;
+        let (min_red, min_green, min_blue) = game.find_minimum_cubes();
+        let power = calculate_power(min_red, min_green, min_blue);
+        total_power += power;
+        println!("Game {}: Minimum cubes - Red: {}, Green: {}, Blue: {}, Power: {}", game.id, min_red, min_green, min_blue, power);
+        if game.is_game_possible(&bag) {
+            sum_ids += game.id;
         }
     }
 
-    println!("Sum of possible game IDs: {}", sum);
+    println!("Sum of possible game IDs: {}", sum_ids);
+    println!("Total power of minimum sets: {}", total_power);
 }

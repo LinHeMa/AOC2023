@@ -14,20 +14,19 @@ class Game:
 def parse_input(input_str):
     games = []
     for line in input_str.strip().split('\n'):
-        parts = line.split(': ')
-        game_id = int(parts[0].replace("Game ", ""))
-        sets_str = parts[1].split('; ')
+        game_id, sets_str = line.split(': ')
+        game_id = int(game_id.replace("Game ", ""))
         sets = []
-        for set_str in sets_str:
+        for set_str in sets_str.split('; '):
             cubes = CubeSet()
             for cube in set_str.split(', '):
-                parts = cube.split(' ')
-                count = int(parts[0])
-                if parts[1] == 'red':
+                count, color = cube.split(' ')
+                count = int(count)
+                if color == 'red':
                     cubes.red = count
-                elif parts[1] == 'green':
+                elif color == 'green':
                     cubes.green = count
-                elif parts[1] == 'blue':
+                elif color == 'blue':
                     cubes.blue = count
             sets.append(cubes)
         games.append(Game(game_id, sets))
@@ -42,11 +41,9 @@ def is_game_possible(game, bag):
 
 
 def find_minimum_cubes(game):
-    min_red, min_green, min_blue = 0, 0, 0
-    for set in game.sets:
-        min_red = max(min_red, set.red)
-        min_green = max(min_green, set.green)
-        min_blue = max(min_blue, set.blue)
+    min_red = max(set.red for set in game.sets)
+    min_green = max(set.green for set in game.sets)
+    min_blue = max(set.blue for set in game.sets)
     return min_red, min_green, min_blue
 
 def calculate_power(red, green, blue):
